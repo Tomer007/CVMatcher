@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: cv-matcher
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn ui:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.18
+      - key: PORT
+        value: 10000
+    healthCheckPath: /
+    disk:
+      name: cv-data
+      mountPath: /opt/render/project/data
+      sizeGB: 1

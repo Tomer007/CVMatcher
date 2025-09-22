@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV Matcher</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        input[type="text"]:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+        input::placeholder, textarea::placeholder {
+            color: #999;
+            font-style: italic;
+        }
+        textarea {
+            height: 150px;
+            resize: vertical;
+        }
+        .threshold-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        input[type="range"] {
+            flex: 1;
+        }
+        .threshold-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+        .match-item {
+            padding: 15px;
+            margin: 8px 0;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 4px solid #007bff;
+        }
+        .match-item:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .match-rank {
+            font-size: 18px;
+            font-weight: bold;
+            margin-right: 10px;
+            min-width: 30px;
+            text-align: center;
+        }
+        .matched-skills {
+            font-size: 14px;
+            color: #28a745;
+            margin: 5px 0;
+            font-weight: 500;
+        }
+        .score-breakdown {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+        .score-item {
+            background-color: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #495057;
+        }
+        .match-name {
+            font-weight: bold;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .match-name:hover {
+            text-decoration: underline;
+        }
+        .match-score {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .latency-info {
+            background-color: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        kbd {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+            color: #495057;
+            display: inline-block;
+            font-size: 0.875em;
+            font-weight: 700;
+            line-height: 1;
+            padding: 2px 4px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CV Matcher</h1>
+        
+        <form id="matchForm">
+            <div class="form-group">
+                <label for="jobPosition">Select Position:</label>
+                <select id="jobPosition" name="jobPosition" required>
+                    <option value="">Choose a position...</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="jobTitle">Job Title:</label>
+                <input type="text" id="jobTitle" name="jobTitle" required placeholder="Enter job title and press Enter to search">
+            </div>
+            
+            <div class="form-group">
+                <label for="jobDescription">Job Description:</label>
+                <textarea id="jobDescription" name="jobDescription" required placeholder="Enter job description and press Ctrl+Enter to search"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="threshold">Similarity Threshold: <span class="threshold-value" id="thresholdValue">25</span>%</label>
+                <div class="threshold-group">
+                    <input type="range" id="threshold" name="threshold" min="0" max="100" value="25">
+                </div>
+            </div>
+            
+            <button type="submit" id="matchButton">Match CVs</button>
+            <div style="margin-top: 10px; font-size: 14px; color: #666; text-align: center;">
+                💡 <strong>Quick Search:</strong> Press <kbd>Enter</kbd> in Job Title or <kbd>Ctrl+Enter</kbd> in Description
+            </div>
+        </form>
+        
+        <div id="results" class="results">
+            <h3>Top 5 CV Matches:</h3>
+            <div id="matchesList"></div>
+            <div id="latencyInfo" class="latency-info" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const thresholdSlider = document.getElementById('threshold');
+        const thresholdValue = document.getElementById('thresholdValue');
+        const form = document.getElementById('matchForm');
+        const results = document.getElementById('results');
+        const matchesList = document.getElementById('matchesList');
+        const latencyInfo = document.getElementById('latencyInfo');
+        const matchButton = document.getElementById('matchButton');
+        const jobPosition = document.getElementById('jobPosition');
+        const jobTitle = document.getElementById('jobTitle');
+        const jobDescription = document.getElementById('jobDescription');
+
+        // Load available positions on page load
+        async function loadPositions() {
+            try {
+                const response = await fetch('/positions');
+                const data = await response.json();
+                
+                if (data.positions) {
+                    jobPosition.innerHTML = '<option value="">Choose a position...</option>';
+                    data.positions.forEach(position => {
+                        const option = document.createElement('option');
+                        option.value = position.filename;
+                        option.textContent = position.title;
+                        jobPosition.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading positions:', error);
+            }
+        }
+
+        // Handle position selection
+        jobPosition.addEventListener('change', async function() {
+            if (this.value) {
+                try {
+                    const response = await fetch(`/position/${this.value}`);
+                    const data = await response.json();
+                    
+                    if (data.title && data.description) {
+                        jobTitle.value = data.title;
+                        jobDescription.value = data.description;
+                    }
+                } catch (error) {
+                    console.error('Error loading position description:', error);
+                }
+            }
+        });
+
+        // Load positions when page loads
+        loadPositions();
+
+        thresholdSlider.addEventListener('input', function() {
+            thresholdValue.textContent = this.value;
+        });
+
+        // Add Enter key support for form fields
+        document.getElementById('jobTitle').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        document.getElementById('jobDescription').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const jobTitle = document.getElementById('jobTitle').value;
+            const jobDescription = document.getElementById('jobDescription').value;
+            const threshold = document.getElementById('threshold').value;
+            
+            matchButton.disabled = true;
+            matchButton.textContent = 'Matching...';
+            results.style.display = 'block';
+            matchesList.innerHTML = '<div class="loading">Finding matches...</div>';
+            
+            try {
+                const response = await fetch('/match', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        job_title: jobTitle,
+                        job_description: jobDescription,
+                        threshold: parseInt(threshold)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayMatches(data.matches, data.latency_ms);
+                } else {
+                    displayError(data.error);
+                }
+            } catch (error) {
+                displayError('An error occurred while matching CVs');
+            } finally {
+                matchButton.disabled = false;
+                matchButton.textContent = 'Match CVs';
+            }
+        });
+        
+        function displayMatches(matches, latency) {
+            if (matches.length === 0) {
+                matchesList.innerHTML = '<div class="loading">No matches found above the threshold</div>';
+                latencyInfo.style.display = 'none';
+                return;
+            }
+            
+            matchesList.innerHTML = matches.map((match, index) => {
+                const rank = index + 1;
+                const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+                
+                const skillsText = match.matched_skills && match.matched_skills.length > 0 
+                    ? `<div class="matched-skills">🎯 Skills: ${match.matched_skills.join(', ')}</div>`
+                    : '';
+                
+                const scoresText = match.semantic_score !== undefined 
+                    ? `<div class="score-breakdown">
+                         <span class="score-item">Semantic: ${match.semantic_score.toFixed(1)}%</span>
+                         <span class="score-item">Skills: ${match.skill_score.toFixed(1)}%</span>
+                         <span class="score-item">Level: ${match.level_score.toFixed(1)}%</span>
+                       </div>`
+                    : '';
+                
+                return `
+                    <div class="match-item" onclick="viewCV('${match.file}')">
+                        <div class="match-header">
+                            <span class="match-rank">${rankEmoji}</span>
+                            <span class="match-name">${match.file}</span>
+                            <span class="match-score">${match.similarity.toFixed(1)}%</span>
+                        </div>
+                        ${skillsText}
+                        ${scoresText}
+                    </div>
+                `;
+            }).join('');
+            
+            // Display latency information
+            if (latency) {
+                latencyInfo.innerHTML = `⚡ Search completed in ${latency}ms`;
+                latencyInfo.style.display = 'block';
+            } else {
+                latencyInfo.style.display = 'none';
+            }
+        }
+        
+        function viewCV(filename) {
+            // Open CV in a new tab with source tracking
+            const url = `/view_cv/${encodeURIComponent(filename)}?source=results`;
+            window.open(url, '_blank');
+        }
+        
+        function displayError(error) {
+            matchesList.innerHTML = `<div class="error">Error: ${error}</div>`;
+        }
+    </script>
+</body>
+</html>
