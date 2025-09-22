@@ -55,15 +55,7 @@ cv_embeddings.pkl
 *.pkl
 *.pickle
 
-# Exclude all CV files and directories
-data/cv/
-data/cv/**/*
 
-# Keep position files but exclude other data
-!data/positions/
-data/positions/*.pdf
-data/positions/*.doc
-data/positions/*.docx
 
 # Temporary files
 *.tmp
@@ -176,6 +168,8 @@ pids
 # Coverage directory used by tools like istanbul
 coverage/
 *.lcov
+
+
 
 # nyc test coverage
 .nyc_output
